@@ -21,6 +21,9 @@ class MotorController
     void stop(void);
 
     void moveForward(void);
+    void moveForward(uint8_t speed);
+
+    void moveBackward(void);
 };
 
 MotorController::MotorController(int left1, int right1, int left2, int right2) :
@@ -64,6 +67,28 @@ void MotorController::moveForward(void) {
   rightMotor1.run(FORWARD);
   leftMotor2.run(FORWARD);
   rightMotor2.run(FORWARD);
+  leftMotor1.setSpeed(MAX_SPEED);
+  rightMotor1.setSpeed(MAX_SPEED);
+  leftMotor2.setSpeed(MAX_SPEED);
+  rightMotor2.setSpeed(MAX_SPEED);
+}
+
+void MotorController::moveForward(uint8_t speed) {
+  leftMotor1.run(FORWARD);
+  rightMotor1.run(FORWARD);
+  leftMotor2.run(FORWARD);
+  rightMotor2.run(FORWARD);
+  leftMotor1.setSpeed(speed);
+  rightMotor1.setSpeed(speed);
+  leftMotor2.setSpeed(speed);
+  rightMotor2.setSpeed(speed);
+}
+
+void MotorController::moveBackward(void) {
+  leftMotor1.run(BACKWARD);
+  rightMotor1.run(BACKWARD);
+  leftMotor2.run(BACKWARD);
+  rightMotor2.run(BACKWARD);
   leftMotor1.setSpeed(MAX_SPEED);
   rightMotor1.setSpeed(MAX_SPEED);
   leftMotor2.setSpeed(MAX_SPEED);

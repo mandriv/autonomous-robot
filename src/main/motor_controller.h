@@ -23,6 +23,9 @@ class MotorController
     void stop(void);
 
     void moveForward(void);
+    void moveForward(uint8_t speed);
+
+    void moveBackward(void);
 };
 
 #endif
