@@ -13,12 +13,17 @@ class MotorController
     static const int MAX_SPEED;
     static const int TURN_SPEED;
     static const int STOP_SPEED;
+    static const int TURN_ARC_SPEED;
 
     MotorController(int left1, int right1, int left2, int right2);
 
     void turnLeft(void);
+    void turnLeft(uint8_t speed);
+    void turnLeftArc(void);
 
     void turnRight(void);
+    void turnRight(uint8_t speed);
+    void turnRightArc(void);
 
     void stop(void);
 

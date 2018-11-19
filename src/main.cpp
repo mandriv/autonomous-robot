@@ -10,6 +10,7 @@
 // States contants
 const String LINE_TRACKING = "LINE_TRACKING";
 const String OBSTACLE_AVOIDANCE = "OBSTACLE_AVOIDANCE";
+const String RIGHT_TURN = "RIGHT_TURN";
 // Moves contants
 const String MOVE_FORWARD = "FORWARD";
 const String MOVE_LEFT = "LEFT";
@@ -23,24 +24,11 @@ const unsigned short int SERVO_FORWARD_ANGLE = 90;
 const unsigned short int SERVO_RIGHT_60_ANGLE = 60;
 const unsigned short int SERVO_RIGHT_30_ANGLE = 30;
 const unsigned short int SERVO_FULL_RIGHT_ANGLE = 0;
-const unsigned short int NUMBER_OF_SERVO_ANGLES = 7;
-const unsigned short int SERVO_ANGLES[NUMBER_OF_SERVO_ANGLES] = {
-  SERVO_FULL_LEFT_ANGLE,
-  SERVO_LEFT_30_ANGLE,
-  SERVO_LEFT_60_ANGLE,
-  SERVO_FORWARD_ANGLE,
-  SERVO_RIGHT_60_ANGLE,
-  SERVO_RIGHT_30_ANGLE,
-  SERVO_FULL_RIGHT_ANGLE,
-};
 // Initialize variables
 MotorController motorController(3, 4, 1, 2);
 String state = LINE_TRACKING;
 String lastMove = MOVE_FORWARD;
 Servo distanceSensorNeck;
-unsigned long manouverStartTime;
-unsigned short int distances[] = { 0, 0, 0, 0, 0, 0, 0 };
-unsigned short int currentDistanceMeasurementIndex = 0;
 
 long microsecondsToCentimeters(long microseconds) {
   // The speed of sound is 340 m/s or 29 microseconds per centimeter.
@@ -49,7 +37,7 @@ long microsecondsToCentimeters(long microseconds) {
   return microseconds / 29 / 2;
 }
 
-int readPing() {
+unsigned int readPing() {
   // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
   // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
   digitalWrite(ULTRASOUND_TRIGGER, LOW);
@@ -64,6 +52,13 @@ int readPing() {
 }
 
 void moveTrack(void) {
+  unsigned int distance = readPing();
+  if (distance < 40) {
+    motorController.stop();
+    state = RIGHT_TURN;
+    return;
+  }
+
   int left = digitalRead(LEFT_TRACKING_SENSOR);
   int center = digitalRead(MIDDLE_TRACKING_SENSOR);
   int right = digitalRead(RIGHT_TRACKING_SENSOR);
@@ -99,20 +94,27 @@ void moveTrack(void) {
   }
 }
 
-void moveNeck(void) {
-  distanceSensorNeck.write(SERVO_ANGLES[currentDistanceMeasurementIndex]);
-}
-
-unsigned short int getShortestDistanceIndex() {
-  unsigned short int shortest = 999;
-  unsigned short int shortestIndex = -1;
-  for (unsigned short int i = 0; i < NUMBER_OF_SERVO_ANGLES; i++) {
-    if (distances[i] < shortest) {
-      shortest = distances[i];
-      shortestIndex = i;
-    }
+void avoidObstacle(void) {
+  int left = digitalRead(LEFT_TRACKING_SENSOR);
+  int center = digitalRead(MIDDLE_TRACKING_SENSOR);
+  int right = digitalRead(RIGHT_TRACKING_SENSOR);
+  if (left == 1 || center == 1 || right == 1) {
+    state = LINE_TRACKING;
+    lastMove = MOVE_LEFT;
+    return;
   }
-  return shortestIndex;
+  distanceSensorNeck.write(SERVO_FULL_LEFT_ANGLE);
+
+  unsigned int distance = readPing();
+  if (distance <= 30) {
+    motorController.turnRightArc();
+    return;
+  }
+  if (distance < 60) {
+    motorController.moveForward();
+    return;
+  }
+  motorController.turnLeftArc();
 }
 
 void setup() {
@@ -127,64 +129,16 @@ void setup() {
 
 void loop() {
   if (state == LINE_TRACKING) {
-    int distanceCm = readPing();
-    if (distanceCm > 15) {
-      // safe to roll
-      moveTrack();
-    } else {
-      // start turning
-      motorController.stop();
-      currentDistanceMeasurementIndex = 0;
-      state = OBSTACLE_AVOIDANCE;
-    }
+    moveTrack();
+    return;
+  }
+  if (state == RIGHT_TURN) {
+    motorController.turnRight();
+    delay(300);
+    state = OBSTACLE_AVOIDANCE;
     return;
   }
   if (state == OBSTACLE_AVOIDANCE) {
-    if (currentDistanceMeasurementIndex < NUMBER_OF_SERVO_ANGLES) {
-      motorController.stop();
-      delay(100);
-      moveNeck();
-      delay(100);
-      int distance = readPing();
-      distances[currentDistanceMeasurementIndex] = distance;
-      Serial.print(SERVO_ANGLES[currentDistanceMeasurementIndex]);
-      Serial.print(" - ");
-      Serial.print(distance);
-      Serial.print("\n");
-      currentDistanceMeasurementIndex++;
-      return;
-    }
-    if (currentDistanceMeasurementIndex >= NUMBER_OF_SERVO_ANGLES) {
-      unsigned short int shortestIndex = getShortestDistanceIndex();
-      switch (shortestIndex) {
-        case 0:
-        case 1:
-        case 2: {
-          // shortest from left
-          unsigned short int distance = distances[shortestIndex];
-          if (distance > 15) {
-            Serial.println("left");
-            motorController.turnLeft();
-          } else {
-            Serial.println("right");
-            motorController.turnRight();
-          }
-          break;
-        }
-        case 3: {
-          // shortest in front
-          Serial.println("forward, right");
-          motorController.turnRight();
-          break;
-        }
-        default: {
-          // shortest from right
-          Serial.println("right left");
-          motorController.turnLeft();
-        }
-      }
-      delay(500);
-      currentDistanceMeasurementIndex = 0;
-    }
+    avoidObstacle();
   }
 }
