@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Servo.h>
 #include "motor_controller.h"
+#include "ultrasound_sensor_controller.h"
 //Define pins
 #define LEFT_TRACKING_SENSOR A0
 #define MIDDLE_TRACKING_SENSOR A1
@@ -24,35 +25,17 @@ const unsigned short int SERVO_FORWARD_ANGLE = 90;
 const unsigned short int SERVO_RIGHT_60_ANGLE = 60;
 const unsigned short int SERVO_RIGHT_30_ANGLE = 30;
 const unsigned short int SERVO_FULL_RIGHT_ANGLE = 0;
+// Turn time constants
+const unsigned short int HALF_TURN_TIME = 630;
+
 // Initialize variables
 MotorController motorController(3, 4, 1, 2);
 String state = LINE_TRACKING;
 String lastMove = MOVE_FORWARD;
 Servo distanceSensorNeck;
 
-long microsecondsToCentimeters(long microseconds) {
-  // The speed of sound is 340 m/s or 29 microseconds per centimeter.
-  // The ping travels out and back, so to find the distance of the
-  // object we take half of the distance travelled.
-  return microseconds / 29 / 2;
-}
-
-unsigned int readPing() {
-  // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
-  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
-  digitalWrite(ULTRASOUND_TRIGGER, LOW);
-  delayMicroseconds(2);
-  digitalWrite(ULTRASOUND_TRIGGER, HIGH);
-  delayMicroseconds(5);
-  digitalWrite(ULTRASOUND_TRIGGER, LOW);
-  long duration = pulseIn(ULTRASOUND_ECHO, HIGH);
-  // convert the time into a distance
-  long cm = microsecondsToCentimeters(duration);
-  return cm;
-}
-
 void moveTrack(void) {
-  unsigned int distance = readPing();
+  unsigned int distance = readPing(ULTRASOUND_TRIGGER, ULTRASOUND_ECHO);
   if (distance < 40) {
     motorController.stop();
     state = RIGHT_TURN;
@@ -105,7 +88,7 @@ void avoidObstacle(void) {
   }
   distanceSensorNeck.write(SERVO_FULL_LEFT_ANGLE);
 
-  unsigned int distance = readPing();
+  unsigned int distance = readPing(ULTRASOUND_TRIGGER, ULTRASOUND_ECHO);
   if (distance <= 30) {
     motorController.turnRightArc();
     return;
