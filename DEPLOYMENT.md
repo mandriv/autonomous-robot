@@ -8,7 +8,8 @@
 * [PlatformIO](https://platformio.org/install/ide?install=atom) plugin for Atom
 
 ### Instructions
-1. Clone the repository or unzip the repo package `git clone git@github.com:mandriv/autonomous-robot.git` / `unzip <package-name.zip>`.2. Open project in Atom `atom autonomous-robot`.
+1. Clone the repository or unzip the repo package `git clone git@github.com:mandriv/autonomous-robot.git` / `unzip <package-name.zip>`.
+2. Open project in Atom `atom autonomous-robot`.
 3. Connect the robot.
 4. Hit 'Upload' button.
 
